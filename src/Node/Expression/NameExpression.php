@@ -33,6 +33,7 @@ class NameExpression extends AbstractExpression
 
         $compiler->addDebugInfo($this);
 
+        // 7x : eZ Platform Related Patch : 2025.08
         if ($this->getAttribute('is_defined_test')) {
             if ($this->isSpecial()) {
                 $compiler->repr(true);
@@ -60,27 +61,29 @@ class NameExpression extends AbstractExpression
                 ->raw(']')
             ;
         } else {
-            if ($this->getAttribute('ignore_strict_check') || !$compiler->getEnvironment()->isStrictVariables()) {
-                $compiler
-                    ->raw('($context[')
-                    ->string($name)
-                    ->raw('] ?? null)')
-                ;
-            } else {
-                $compiler
-                    ->raw('(isset($context[')
-                    ->string($name)
-                    ->raw(']) || array_key_exists(')
-                    ->string($name)
-                    ->raw(', $context) ? $context[')
-                    ->string($name)
-                    ->raw('] : (function () { throw new RuntimeError(\'Variable ')
-                    ->string($name)
-                    ->raw(' does not exist.\', ')
-                    ->repr($this->lineno)
-                    ->raw(', $this->source); })()')
-                    ->raw(')')
-                ;
+   if ($this->getAttribute('ignore_strict_check') || !$compiler->getEnvironment()->isStrictVariables()) {
+        // Safe null-coalescing, ensure $context exists first
+        $compiler
+            ->raw('((isset($context) && array_key_exists(')
+            ->string($name)
+            ->raw(', $context)) ? $context[')
+            ->string($name)
+            ->raw('] : null)')
+        ;
+    } else {
+        // Strict mode with RuntimeError
+        $compiler
+            ->raw('((isset($context) && array_key_exists(')
+            ->string($name)
+            ->raw(', $context)) ? $context[')
+            ->string($name)
+            ->raw('] : (function () { throw new RuntimeError(\'Variable ')
+            ->string($name)
+            ->raw(' does not exist.\', ')
+            ->repr($this->lineno)
+            ->raw(', $this->source); })())')
+        ;
+
             }
         }
     }
