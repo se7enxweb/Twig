@@ -2,7 +2,7 @@
     "name": "se7enxweb/twig",
     "type": "library",
     "description": "Twig, the flexible, fast, and secure template language for PHP",
-    "keywords": ["templating"],
+    "keywords": ["templating", "ezplatform" ],
     "homepage": "https://twig.symfony.com",
     "license": "BSD-3-Clause",
     "minimum-stability": "dev",
