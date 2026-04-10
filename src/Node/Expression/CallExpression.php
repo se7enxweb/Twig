@@ -297,7 +297,9 @@ abstract class CallExpression extends AbstractExpression
         }
         $r = new \ReflectionFunction($closure);
 
-        if (false !== strpos($r->name, '{closure}')) {
+        // PHP 8.5 changed anonymous closure names from '{closure}' to '{closure:ClassName::method():N}'.
+        // Checking for the prefix '{closure' (without closing brace) catches both formats.
+        if (false !== strpos($r->name, '{closure')) {
             return $this->reflector = [$r, $callable, 'Closure'];
         }
 

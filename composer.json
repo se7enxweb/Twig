@@ -24,7 +24,7 @@
         }
     ],
     "replace": {
-        "twig/twig": "2.16.2"
+        "twig/twig": "*"
     },
     "require": {
         "php": ">=7.1.3",
