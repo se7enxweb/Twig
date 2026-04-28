@@ -960,12 +960,15 @@ class ExpressionParser
 
         if (
             $node instanceof ContextVariable
+            && $attribute instanceof ConstantExpression
+            && \is_string($name = $attribute->getAttribute('value'))
+            && preg_match('#^[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*$#D', $name)
             && (
                 null !== $this->parser->getImportedSymbol('template', $node->getAttribute('name'))
-                || '_self' === $node->getAttribute('name') && $attribute instanceof ConstantExpression
+                || '_self' === $node->getAttribute('name')
             )
         ) {
-            return new MacroReferenceExpression(new TemplateVariable($node->getAttribute('name'), $node->getTemplateLine()), 'macro_'.$attribute->getAttribute('value'), $arguments, $node->getTemplateLine());
+            return new MacroReferenceExpression(new TemplateVariable($node->getAttribute('name'), $node->getTemplateLine()), 'macro_'.$name, $arguments, $node->getTemplateLine());
         }
 
         return new GetAttrExpression($node, $attribute, $arguments, $type, $lineno);
