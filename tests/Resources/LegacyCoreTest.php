@@ -16,6 +16,7 @@ use Twig\Environment;
 use Twig\Error\RuntimeError;
 use Twig\Extension\SandboxExtension;
 use Twig\Loader\ArrayLoader;
+use Twig\Sandbox\SecurityNotAllowedPropertyError;
 use Twig\Sandbox\SecurityPolicy;
 use Twig\Sandbox\SourcePolicyInterface;
 use Twig\Source;
@@ -93,6 +94,15 @@ class LegacyCoreTest extends TestCase
         $this->expectException(RuntimeError::class);
         $this->expectExceptionMessageMatches('/must be a Closure in sandbox mode/');
         $template->callLegacyArrayMap(['a', 'b'], 'strtoupper');
+    }
+
+    public function testTwigArrayColumnEnforcesSandbox()
+    {
+        $env = $this->createSandboxedEnvironment(true);
+        $template = new LegacyCoreTestTemplate($env, 'index.twig');
+
+        $this->expectException(SecurityNotAllowedPropertyError::class);
+        $template->callLegacyArrayColumn([new LegacyColumnObject()], 'bar');
     }
 
     public function testTwigArrayReduceRecoversSourceForSourcePolicy()
@@ -252,6 +262,11 @@ class LegacyCoreTestTemplate extends Template
         twig_check_arrow_in_sandbox($this->env, $arrow, $thing, $type);
     }
 
+    public function callLegacyArrayColumn($array, $name, $index = null)
+    {
+        return twig_array_column($this->env, $array, $name, $index);
+    }
+
     public function getTemplateName(): string
     {
         return $this->name;
@@ -271,4 +286,9 @@ class LegacyCoreTestTemplate extends Template
     {
         return [];
     }
+}
+
+class LegacyColumnObject
+{
+    public $bar = 'bar';
 }

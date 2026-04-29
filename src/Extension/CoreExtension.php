@@ -230,7 +230,7 @@ final class CoreExtension extends AbstractExtension
             new TwigFilter('sort', [self::class, 'sort'], ['needs_environment' => true, 'needs_is_sandboxed' => true]),
             new TwigFilter('merge', [self::class, 'merge']),
             new TwigFilter('batch', [self::class, 'batch']),
-            new TwigFilter('column', [self::class, 'column']),
+            new TwigFilter('column', [self::class, 'column'], ['needs_environment' => true, 'needs_is_sandboxed' => true]),
             new TwigFilter('filter', [self::class, 'filter'], ['needs_environment' => true, 'needs_is_sandboxed' => true]),
             new TwigFilter('map', [self::class, 'map'], ['needs_environment' => true, 'needs_is_sandboxed' => true]),
             new TwigFilter('reduce', [self::class, 'reduce'], ['needs_environment' => true, 'needs_is_sandboxed' => true]),
@@ -1795,12 +1795,24 @@ final class CoreExtension extends AbstractExtension
      *
      * @internal
      */
-    public static function column($array, $name, $index = null): array
+    public static function column(Environment $env, bool $isSandboxed, $array, $name, $index = null): array
     {
         if ($array instanceof \Traversable) {
             $array = iterator_to_array($array);
         } elseif (!\is_array($array)) {
             throw new RuntimeError(\sprintf('The column filter only works with sequences/mappings or "Traversable", got "%s" as first argument.', \gettype($array)));
+        }
+
+        if ($isSandboxed) {
+            $sandbox = $env->getExtension(SandboxExtension::class);
+            foreach ($array as $item) {
+                if (\is_object($item)) {
+                    $sandbox->checkPropertyAllowed($item, (string) $name);
+                    if (null !== $index) {
+                        $sandbox->checkPropertyAllowed($item, (string) $index);
+                    }
+                }
+            }
         }
 
         return array_column($array, $name, $index);
