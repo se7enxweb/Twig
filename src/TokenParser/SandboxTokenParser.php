@@ -39,7 +39,9 @@ final class SandboxTokenParser extends AbstractTokenParser
         $stream->expect(/* Token::BLOCK_END_TYPE */ 3);
 
         // in a sandbox tag, only include tags are allowed
-        if (!$body instanceof IncludeNode) {
+        if ($body instanceof IncludeNode) {
+            $body->setAttribute('sandboxed', true);
+        } else {
             foreach ($body as $node) {
                 if ($node instanceof TextNode && ctype_space($node->getAttribute('data'))) {
                     continue;
@@ -48,6 +50,8 @@ final class SandboxTokenParser extends AbstractTokenParser
                 if (!$node instanceof IncludeNode) {
                     throw new SyntaxError('Only "include" tags are allowed within a "sandbox" section.', $node->getTemplateLine(), $stream->getSourceContext());
                 }
+
+                $node->setAttribute('sandboxed', true);
             }
         }
 
