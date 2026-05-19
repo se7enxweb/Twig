@@ -14,10 +14,11 @@ namespace Twig\Node\Expression;
 
 use Twig\Compiler;
 use Twig\Extension\SandboxExtension;
+use Twig\Node\CoercesChildrenToStringInterface;
 use Twig\Node\Expression\Variable\ContextVariable;
 use Twig\Template;
 
-class GetAttrExpression extends AbstractExpression
+class GetAttrExpression extends AbstractExpression implements CoercesChildrenToStringInterface
 {
     /**
      * @param ArrayExpression|NameExpression|null $arguments
@@ -114,5 +115,11 @@ class GetAttrExpression extends AbstractExpression
         if ($arrayAccessSandbox) {
             $compiler->raw(')');
         }
+    }
+
+    public function getStringCoercedChildNames(): array
+    {
+        // for a method-like access, the host PHP method may coerce any of its arguments to string
+        return $this->hasNode('arguments') ? ['arguments'] : [];
     }
 }

@@ -12,8 +12,9 @@
 namespace Twig\Node\Expression\Binary;
 
 use Twig\Compiler;
+use Twig\Node\CoercesChildrenToStringInterface;
 
-class GreaterEqualBinary extends AbstractBinary
+class GreaterEqualBinary extends AbstractBinary implements CoercesChildrenToStringInterface
 {
     public function compile(Compiler $compiler): void
     {
@@ -35,5 +36,10 @@ class GreaterEqualBinary extends AbstractBinary
     public function operator(Compiler $compiler): Compiler
     {
         return $compiler->raw('>=');
+    }
+
+    public function getStringCoercedChildNames(): array
+    {
+        return ['left', 'right'];
     }
 }

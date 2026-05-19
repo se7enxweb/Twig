@@ -89,4 +89,10 @@ class DefinedTest extends TestExpression
     {
         $compiler->subcompile($this->getNode('node'));
     }
+
+    public function getStringCoercedChildNames(): array
+    {
+        // the `defined` test does not coerce its node to string (it only inspects existence)
+        return [];
+    }
 }

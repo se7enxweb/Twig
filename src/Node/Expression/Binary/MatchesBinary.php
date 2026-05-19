@@ -13,10 +13,12 @@ namespace Twig\Node\Expression\Binary;
 
 use Twig\Compiler;
 use Twig\Error\SyntaxError;
+use Twig\Node\CoercesChildrenToStringInterface;
+use Twig\Node\Expression\AbstractExpression;
 use Twig\Node\Expression\ConstantExpression;
 use Twig\Node\Node;
 
-class MatchesBinary extends AbstractBinary
+class MatchesBinary extends AbstractBinary implements CoercesChildrenToStringInterface
 {
     public function __construct(Node $left, Node $right, int $lineno)
     {
@@ -47,5 +49,10 @@ class MatchesBinary extends AbstractBinary
     public function operator(Compiler $compiler): Compiler
     {
         return $compiler->raw('');
+    }
+
+    public function getStringCoercedChildNames(): array
+    {
+        return ['left', 'right'];
     }
 }
