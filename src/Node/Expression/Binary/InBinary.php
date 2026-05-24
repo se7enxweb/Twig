@@ -12,8 +12,9 @@
 namespace Twig\Node\Expression\Binary;
 
 use Twig\Compiler;
+use Twig\Node\CoercesChildrenToStringInterface;
 
-class InBinary extends AbstractBinary
+class InBinary extends AbstractBinary implements CoercesChildrenToStringInterface
 {
     public function compile(Compiler $compiler): void
     {
@@ -29,5 +30,10 @@ class InBinary extends AbstractBinary
     public function operator(Compiler $compiler): Compiler
     {
         return $compiler->raw('in');
+    }
+
+    public function getStringCoercedChildNames(): array
+    {
+        return ['left', 'right'];
     }
 }
