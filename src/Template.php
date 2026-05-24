@@ -85,6 +85,14 @@ abstract class Template
             return $this->parent;
         }
 
+        // The compiled doGetParent() may evaluate user expressions (filters,
+        // functions, method calls) when the parent name is dynamic. Make sure
+        // the sandbox security check runs first so those expressions cannot
+        // bypass the allow-list when getParent() is reached before the first
+        // ensureSecurityChecked() call on this template (e.g. via a macro
+        // call or yieldBlock() into a pre-warmed instance).
+        $this->ensureSecurityChecked();
+
         try {
             if (!$parent = $this->doGetParent($context)) {
                 return false;
@@ -347,7 +355,10 @@ abstract class Template
         $context = $this->env->mergeGlobals($context);
         $blocks = array_merge($this->blocks, $blocks);
 
+        // set before ensureSecurityChecked() can throw, so the output buffers are always cleaned up
+        $level = ob_get_level();
         try {
+            $this->ensureSecurityChecked();
             if ($this->useYield) {
                 yield from $this->doDisplay($context, $blocks);
 
@@ -417,7 +428,9 @@ abstract class Template
         }
 
         if (null !== $template) {
+            $level = ob_get_level();
             try {
+                $template->ensureSecurityChecked();
                 if ($this->useYield) {
                     yield from $template->$block($context, $blocks);
 
@@ -493,6 +506,15 @@ abstract class Template
         } else {
             throw new RuntimeError(\sprintf('The template has no parent and no traits defining the "%s" block.', $name), -1, $this->getSourceContext());
         }
+    }
+
+    /**
+     * Runs the sandbox security check against the current sandbox state.
+     *
+     * @internal
+     */
+    public function ensureSecurityChecked(): void
+    {
     }
 
     /**
