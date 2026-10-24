@@ -74,6 +74,20 @@ use Twig\TwigTest;
 
 final class CoreExtension extends AbstractExtension
 {
+    public const ARRAY_LIKE_CLASSES = [
+        'ArrayIterator',
+        'ArrayObject',
+        'CachingIterator',
+        'RecursiveArrayIterator',
+        'RecursiveCachingIterator',
+        'SplDoublyLinkedList',
+        'SplFixedArray',
+        'SplObjectStorage',
+        'SplQueue',
+        'SplStack',
+        'WeakMap',
+    ];
+
     private $dateFormats = ['F j, Y H:i', '%d days'];
     private $numberFormat = [0, '.', ','];
     private $timezone = null;
@@ -347,6 +361,8 @@ namespace {
     use Twig\Extension\CoreExtension;
     use Twig\Extension\SandboxExtension;
     use Twig\Markup;
+    use Twig\Sandbox\SecurityNotAllowedMethodError;
+    use Twig\Sandbox\SecurityNotAllowedPropertyError;
     use Twig\Source;
     use Twig\Template;
     use Twig\TemplateWrapper;
@@ -1400,9 +1416,21 @@ function twig_array_batch($items, $size, $fill = null, $preserveKeys = true)
  */
 function twig_get_attribute(Environment $env, Source $source, $object, $item, array $arguments = [], $type = /* Template::ANY_CALL */ 'any', $isDefinedTest = false, $ignoreStrictCheck = false, $sandboxed = false, int $lineno = -1)
 {
+    $propertyNotAllowedError = null;
+
     // array
     if (/* Template::METHOD_CALL */ 'method' !== $type) {
         $arrayItem = \is_bool($item) || \is_float($item) ? (int) $item : $item;
+
+        if ($sandboxed && $object instanceof ArrayAccess && !\in_array(\get_class($object), CoreExtension::ARRAY_LIKE_CLASSES, true)) {
+            try {
+                $env->getExtension(SandboxExtension::class)->checkPropertyAllowed($object, $arrayItem, $lineno, $source);
+            } catch (SecurityNotAllowedPropertyError $propertyNotAllowedError) {
+                // the method lookup below expects a string item (no float-to-int key deprecation on PHP 8.1+)
+                $item = (string) $item;
+                goto methodCheck;
+            }
+        }
 
         if (((\is_array($object) || $object instanceof \ArrayObject) && (isset($object[$arrayItem]) || \array_key_exists($arrayItem, (array) $object)))
             || ($object instanceof ArrayAccess && isset($object[$arrayItem]))
@@ -1475,18 +1503,24 @@ function twig_get_attribute(Environment $env, Source $source, $object, $item, ar
 
     // object property
     if (/* Template::METHOD_CALL */ 'method' !== $type) {
+        if ($sandboxed) {
+            try {
+                $env->getExtension(SandboxExtension::class)->checkPropertyAllowed($object, $item, $lineno, $source);
+            } catch (SecurityNotAllowedPropertyError $propertyNotAllowedError) {
+                goto methodCheck;
+            }
+        }
+
         if (isset($object->$item) || \array_key_exists((string) $item, (array) $object)) {
             if ($isDefinedTest) {
                 return true;
             }
 
-            if ($sandboxed) {
-                $env->getExtension(SandboxExtension::class)->checkPropertyAllowed($object, $item, $lineno, $source);
-            }
-
             return $object->$item;
         }
     }
+
+    methodCheck:
 
     static $cache = [];
 
@@ -1546,6 +1580,10 @@ function twig_get_attribute(Environment $env, Source $source, $object, $item, ar
             return false;
         }
 
+        if ($propertyNotAllowedError) {
+            throw $propertyNotAllowedError;
+        }
+
         if ($ignoreStrictCheck || !$env->isStrictVariables()) {
             return;
         }
@@ -1553,12 +1591,24 @@ function twig_get_attribute(Environment $env, Source $source, $object, $item, ar
         throw new RuntimeError(sprintf('Neither the property "%1$s" nor one of the methods "%1$s()", "get%1$s()"/"is%1$s()"/"has%1$s()" or "__call()" exist and have public access in class "%2$s".', $item, $class), $lineno, $source);
     }
 
-    if ($isDefinedTest) {
-        return true;
+    if ($sandboxed) {
+        try {
+            $env->getExtension(SandboxExtension::class)->checkMethodAllowed($object, $method, $lineno, $source);
+        } catch (SecurityNotAllowedMethodError $e) {
+            if ($isDefinedTest) {
+                return false;
+            }
+
+            if ($propertyNotAllowedError) {
+                throw $propertyNotAllowedError;
+            }
+
+            throw $e;
+        }
     }
 
-    if ($sandboxed) {
-        $env->getExtension(SandboxExtension::class)->checkMethodAllowed($object, $method, $lineno, $source);
+    if ($isDefinedTest) {
+        return true;
     }
 
     // Some objects throw exceptions when they have __call, and the method we try

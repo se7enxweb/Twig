@@ -39,6 +39,8 @@ class SandboxTest extends TestCase
             'arr' => ['obj' => new FooObject()],
             'child_obj' => new ChildClass(),
             'some_array' => [5, 6, 7, new FooObject()],
+            'array_like' => new ArrayLikeObject(),
+            'magic' => new MagicObject(),
             'recursion' => [4],
         ];
         self::$params['recursion'][] = &self::$params['recursion'];
@@ -64,6 +66,7 @@ class SandboxTest extends TestCase
             '1_syntax_error' => '{% syntax error }}',
             '1_childobj_parentmethod' => '{{ child_obj.ParentMethod() }}',
             '1_childobj_childmethod' => '{{ child_obj.ChildMethod() }}',
+            '1_array_like' => '{{ array_like["foo"] }}',
         ];
     }
 
@@ -82,16 +85,57 @@ class SandboxTest extends TestCase
         $this->assertEquals('FOO', $twig->load('1_basic')->render(self::$params), 'Sandbox does nothing if it is disabled globally');
     }
 
-    public function testSandboxUnallowedMethodAccessor()
+    public function testSandboxUnallowedPropertyAccessor()
+    {
+        $twig = $this->getEnvironment(true, [], self::$templates);
+        try {
+            $twig->load('1_basic1')->render(['obj' => new MagicObject()]);
+            $this->fail('Sandbox throws a SecurityError exception if an unallowed method is called');
+        } catch (SecurityNotAllowedPropertyError $e) {
+            $this->assertEquals('Twig\Tests\Extension\MagicObject', $e->getClassName(), 'Exception should be raised on the "Twig\Tests\Extension\MagicObject" class');
+            $this->assertEquals('foo', $e->getPropertyName(), 'Exception should be raised on the "foo" property');
+        }
+    }
+
+    public function testSandboxUnallowedMethodAccessorReportsTheProperty()
     {
         $twig = $this->getEnvironment(true, [], self::$templates);
         try {
             $twig->load('1_basic1')->render(self::$params);
             $this->fail('Sandbox throws a SecurityError exception if an unallowed method is called');
         } catch (SecurityError $e) {
-            $this->assertInstanceOf(SecurityNotAllowedMethodError::class, $e, 'Exception should be an instance of Twig_Sandbox_SecurityNotAllowedMethodError');
+            $this->assertInstanceOf(SecurityNotAllowedPropertyError::class, $e, 'The property check runs first and its error is reported when the method is not allowed either');
             $this->assertEquals('Twig\Tests\Extension\FooObject', $e->getClassName(), 'Exception should be raised on the "Twig\Tests\Extension\FooObject" class');
-            $this->assertEquals('foo', $e->getMethodName(), 'Exception should be raised on the "foo" method');
+            $this->assertEquals('foo', $e->getPropertyName(), 'Exception should be raised on the "foo" property');
+        }
+    }
+
+    public function testSandboxUnallowedArrayIndexAccessor()
+    {
+        $twig = $this->getEnvironment(true, [], self::$templates);
+
+        // ArrayObject and other internal array-like classes are exempted from sandbox restrictions
+        $this->assertSame('bar', $twig->load('1_array_like')->render(['array_like' => new \ArrayObject(['foo' => 'bar'])]));
+
+        try {
+            $twig->load('1_array_like')->render(self::$params);
+            $this->fail('Sandbox throws a SecurityError exception if an unallowed method is called');
+        } catch (SecurityNotAllowedPropertyError $e) {
+            $this->assertEquals('Twig\Tests\Extension\ArrayLikeObject', $e->getClassName(), 'Exception should be raised on the "Twig\Tests\Extension\ArrayLikeObject" class');
+            $this->assertEquals('foo', $e->getPropertyName(), 'Exception should be raised on the "foo" property');
+        }
+    }
+
+    public function testSandboxUnallowedArrayIndexAccessorInStrictMode()
+    {
+        $twig = $this->getEnvironment(true, ['strict_variables' => true], self::$templates);
+
+        try {
+            $twig->load('1_array_like')->render(self::$params);
+            $this->fail('Sandbox throws a SecurityError exception if an unallowed method is called');
+        } catch (SecurityNotAllowedPropertyError $e) {
+            $this->assertEquals('Twig\Tests\Extension\ArrayLikeObject', $e->getClassName(), 'Exception should be raised on the "Twig\Tests\Extension\ArrayLikeObject" class');
+            $this->assertEquals('foo', $e->getPropertyName(), 'Exception should be raised on the "foo" property');
         }
     }
 
@@ -248,7 +292,8 @@ class SandboxTest extends TestCase
         return [
             'constant_test' => ['{{ obj is constant("PHP_INT_MAX") }}', ''],
             'set_object' => ['{% set a = obj.anotherFooObject %}{{ a.foo }}', 'foo'],
-            'is_defined' => ['{{ obj.anotherFooObject is defined }}', '1'],
+            'is_defined1' => ['{{ obj.anotherFooObject is defined }}', '1'],
+            'is_defined2' => ['{{ magic.foo is defined }}', ''],
             'is_null' => ['{{ obj is null }}', ''],
             'is_sameas' => ['{{ obj is same as(obj) }}', '1'],
             'is_sameas_no_brackets' => ['{{ obj is same as obj }}', '1'],
@@ -557,5 +602,41 @@ class FooObject
     public function getAnotherFooObject()
     {
         return new self();
+    }
+}
+
+class ArrayLikeObject extends \ArrayObject
+{
+    public function offsetExists($offset): bool
+    {
+        throw new \BadMethodCallException('Should not be called.');
+    }
+
+    #[\ReturnTypeWillChange]
+    public function offsetGet($offset)
+    {
+        throw new \BadMethodCallException('Should not be called.');
+    }
+
+    public function offsetSet($offset, $value): void
+    {
+    }
+
+    public function offsetUnset($offset): void
+    {
+    }
+}
+
+class MagicObject
+{
+    #[\ReturnTypeWillChange]
+    public function __get($name)
+    {
+        throw new \BadMethodCallException('Should not be called.');
+    }
+
+    public function __isset($name): bool
+    {
+        throw new \BadMethodCallException('Should not be called.');
     }
 }
