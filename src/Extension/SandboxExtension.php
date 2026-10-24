@@ -117,15 +117,28 @@ final class SandboxExtension extends AbstractExtension
         }
     }
 
+    /**
+     * @throws SecurityNotAllowedMethodError
+     */
     public function ensureToStringAllowed($obj, int $lineno = -1, ?Source $source = null)
     {
+        return $this->doEnsureToStringAllowed($obj, $lineno, $source, new \SplObjectStorage());
+    }
+
+    private function doEnsureToStringAllowed($obj, int $lineno, ?Source $source, \SplObjectStorage $seen)
+    {
         if (\is_array($obj)) {
-            $this->ensureToStringAllowedForArray($obj, $lineno, $source);
+            $this->ensureToStringAllowedForArray($obj, $lineno, $source, $seen);
 
             return $obj;
         }
 
-        if ($this->isSandboxed($source) && \is_object($obj) && method_exists($obj, '__toString')) {
+        if (!$this->isSandboxed($source) || !\is_object($obj)) {
+            return $obj;
+        }
+
+        $stringable = method_exists($obj, '__toString');
+        if ($stringable) {
             try {
                 $this->policy->checkMethodAllowed($obj, '__toString');
             } catch (SecurityNotAllowedMethodError $e) {
@@ -136,10 +149,39 @@ final class SandboxExtension extends AbstractExtension
             }
         }
 
+        // Elements yielded by a Traversable may be string-coerced downstream
+        // (e.g. by `join`/`replace` or the `in` operator), bypassing the policy. Check them now.
+        if ($obj instanceof \Traversable) {
+            // guard against self-referencing iterables (an IteratorAggregate yielding itself)
+            if (isset($seen[$obj])) {
+                return $obj;
+            }
+            $seen[$obj] = true;
+
+            // IteratorAggregate::getIterator() is idempotent, so we can walk
+            // the elements and return the original object: host code typed
+            // against a specific class (e.g. FormView) keeps working.
+            if ($obj instanceof \IteratorAggregate) {
+                foreach ($obj as $v) {
+                    $this->doEnsureToStringAllowed($v, $lineno, $source, $seen);
+                }
+
+                return $obj;
+            }
+
+            // Single-pass Iterator/Generator: materialise to validate.
+            $array = iterator_to_array($obj);
+            $this->ensureToStringAllowedForArray($array, $lineno, $source, $seen);
+
+            if (!$stringable) {
+                return $array;
+            }
+        }
+
         return $obj;
     }
 
-    private function ensureToStringAllowedForArray(array $obj, int $lineno, ?Source $source, array &$stack = []): void
+    private function ensureToStringAllowedForArray(array $obj, int $lineno, ?Source $source, \SplObjectStorage $seen, array &$stack = []): void
     {
         foreach ($obj as $k => $v) {
             if (!$v) {
@@ -147,7 +189,7 @@ final class SandboxExtension extends AbstractExtension
             }
 
             if (!\is_array($v)) {
-                $this->ensureToStringAllowed($v, $lineno, $source);
+                $this->doEnsureToStringAllowed($v, $lineno, $source, $seen);
                 continue;
             }
 
@@ -160,7 +202,7 @@ final class SandboxExtension extends AbstractExtension
 
                 $obj[$k] = $cookie;
                 try {
-                    $this->ensureToStringAllowedForArray($v, $lineno, $source, $stack);
+                    $this->ensureToStringAllowedForArray($v, $lineno, $source, $seen, $stack);
                 } finally {
                     $obj[$k] = $v;
                 }
@@ -176,7 +218,7 @@ final class SandboxExtension extends AbstractExtension
                 $stack[$r->getId()] = true;
             }
 
-            $this->ensureToStringAllowedForArray($v, $lineno, $source, $stack);
+            $this->ensureToStringAllowedForArray($v, $lineno, $source, $seen, $stack);
         }
     }
 }

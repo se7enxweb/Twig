@@ -12,8 +12,9 @@
 namespace Twig\Node\Expression\Binary;
 
 use Twig\Compiler;
+use Twig\Node\CoercesChildrenToStringInterface;
 
-class NotInBinary extends AbstractBinary
+class NotInBinary extends AbstractBinary implements CoercesChildrenToStringInterface
 {
     public function compile(Compiler $compiler)
     {
@@ -29,6 +30,11 @@ class NotInBinary extends AbstractBinary
     public function operator(Compiler $compiler)
     {
         return $compiler->raw('not in');
+    }
+
+    public function getStringCoercedChildNames(): array
+    {
+        return ['left', 'right'];
     }
 }
 
