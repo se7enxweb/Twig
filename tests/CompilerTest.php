@@ -14,10 +14,29 @@ namespace Twig\Tests;
 use PHPUnit\Framework\TestCase;
 use Twig\Compiler;
 use Twig\Environment;
+use Twig\Loader\ArrayLoader;
 use Twig\Loader\LoaderInterface;
 
 class CompilerTest extends TestCase
 {
+    public function testStringEncodesSingleQuotesAsHexEscape()
+    {
+        $compiler = new Compiler(new Environment(new ArrayLoader()));
+
+        // Defense in depth: a single quote in the source value must NOT appear as a
+        // literal "'" in the compiled output, so that even if a caller mistakenly
+        // concatenates the result into a single-quoted PHP string, the value cannot
+        // break out of that context. It must still decode back to the original byte.
+        $source = $compiler->string("it's \"a\" test")->getSource();
+
+        $this->assertStringNotContainsString("'", $source);
+        $this->assertSame('"it\\x27s \\"a\\" test"', $source);
+
+        $decoded = null;
+        eval('$decoded = '.$source.';');
+        $this->assertSame("it's \"a\" test", $decoded);
+    }
+
     public function testReprNumericValueWithLocale()
     {
         $compiler = new Compiler(new Environment($this->createMock(LoaderInterface::class)));
