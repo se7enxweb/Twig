@@ -12,6 +12,7 @@
 namespace Twig\Node\Expression\Test;
 
 use Twig\Compiler;
+use Twig\Node\CoercesChildrenToStringInterface;
 use Twig\Node\Expression\TestExpression;
 
 /**
@@ -19,7 +20,7 @@ use Twig\Node\Expression\TestExpression;
  *
  * @author Fabien Potencier <fabien@symfony.com>
  */
-class SameasTest extends TestExpression
+class SameasTest extends TestExpression implements CoercesChildrenToStringInterface
 {
     public function compile(Compiler $compiler)
     {
@@ -30,6 +31,12 @@ class SameasTest extends TestExpression
             ->subcompile($this->getNode('arguments')->getNode(0))
             ->raw(')')
         ;
+    }
+
+    public function getStringCoercedChildNames(): array
+    {
+        // `===` is strict, no coercion
+        return [];
     }
 }
 

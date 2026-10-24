@@ -12,12 +12,18 @@
 namespace Twig\Node\Expression\Binary;
 
 use Twig\Compiler;
+use Twig\Node\CoercesChildrenToStringInterface;
 
-class LessBinary extends AbstractBinary
+class LessBinary extends AbstractBinary implements CoercesChildrenToStringInterface
 {
     public function operator(Compiler $compiler)
     {
         return $compiler->raw('<');
+    }
+
+    public function getStringCoercedChildNames(): array
+    {
+        return ['left', 'right'];
     }
 }
 

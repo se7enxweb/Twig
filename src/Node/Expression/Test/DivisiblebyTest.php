@@ -12,6 +12,7 @@
 namespace Twig\Node\Expression\Test;
 
 use Twig\Compiler;
+use Twig\Node\CoercesChildrenToStringInterface;
 use Twig\Node\Expression\TestExpression;
 
 /**
@@ -21,7 +22,7 @@ use Twig\Node\Expression\TestExpression;
  *
  * @author Fabien Potencier <fabien@symfony.com>
  */
-class DivisiblebyTest extends TestExpression
+class DivisiblebyTest extends TestExpression implements CoercesChildrenToStringInterface
 {
     public function compile(Compiler $compiler)
     {
@@ -32,6 +33,12 @@ class DivisiblebyTest extends TestExpression
             ->subcompile($this->getNode('arguments')->getNode(0))
             ->raw(')')
         ;
+    }
+
+    public function getStringCoercedChildNames(): array
+    {
+        // PHP `%` does not call __toString(), no coercion
+        return [];
     }
 }
 

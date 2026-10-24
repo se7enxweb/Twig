@@ -1417,6 +1417,9 @@ function twig_array_batch($items, $size, $fill = null, $preserveKeys = true)
 function twig_get_attribute(Environment $env, Source $source, $object, $item, array $arguments = [], $type = /* Template::ANY_CALL */ 'any', $isDefinedTest = false, $ignoreStrictCheck = false, $sandboxed = false, int $lineno = -1)
 {
     $propertyNotAllowedError = null;
+    if ($sandboxed && \is_object($item) && method_exists($item, '__toString')) {
+        $env->getExtension(SandboxExtension::class)->ensureToStringAllowed($item, $lineno, $source);
+    }
 
     // array
     if (/* Template::METHOD_CALL */ 'method' !== $type) {

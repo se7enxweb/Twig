@@ -12,9 +12,10 @@
 namespace Twig\Node\Expression;
 
 use Twig\Compiler;
+use Twig\Node\CoercesChildrenToStringInterface;
 use Twig\Node\Node;
 
-class TestExpression extends CallExpression
+class TestExpression extends CallExpression implements CoercesChildrenToStringInterface
 {
     public function __construct(Node $node, string $name, ?Node $arguments, int $lineno)
     {
@@ -38,6 +39,23 @@ class TestExpression extends CallExpression
         $this->setAttribute('is_variadic', $test->isVariadic());
 
         $this->compileCallable($compiler);
+    }
+
+    public function getStringCoercedChildNames(): array
+    {
+        $names = [];
+
+        // the `empty` test triggers an implicit string coercion through twig_test_empty()
+        if ('empty' === $this->getAttribute('name')) {
+            $names[] = 'node';
+        }
+
+        // a test may coerce its arguments to string (the host PHP code is opaque to Twig)
+        if ($this->hasNode('arguments')) {
+            $names[] = 'arguments';
+        }
+
+        return $names;
     }
 }
 

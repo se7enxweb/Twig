@@ -12,6 +12,7 @@
 namespace Twig\Node\Expression\Test;
 
 use Twig\Compiler;
+use Twig\Node\CoercesChildrenToStringInterface;
 use Twig\Node\Expression\TestExpression;
 
 /**
@@ -21,7 +22,7 @@ use Twig\Node\Expression\TestExpression;
  *
  * @author Fabien Potencier <fabien@symfony.com>
  */
-class OddTest extends TestExpression
+class OddTest extends TestExpression implements CoercesChildrenToStringInterface
 {
     public function compile(Compiler $compiler)
     {
@@ -31,6 +32,12 @@ class OddTest extends TestExpression
             ->raw(' % 2 != 0')
             ->raw(')')
         ;
+    }
+
+    public function getStringCoercedChildNames(): array
+    {
+        // PHP `%` does not call __toString(), no coercion
+        return [];
     }
 }
 

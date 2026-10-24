@@ -20,7 +20,7 @@ use Twig\Node\Expression\NameExpression;
  *
  * @author Fabien Potencier <fabien@symfony.com>
  */
-class ImportNode extends Node
+class ImportNode extends Node implements CoercesChildrenToStringInterface
 {
     public function __construct(AbstractExpression $expr, AbstractExpression $var, int $lineno, ?string $tag = null, bool $global = true)
     {
@@ -59,6 +59,12 @@ class ImportNode extends Node
         }
 
         $compiler->raw(";\n");
+    }
+
+    public function getStringCoercedChildNames(): array
+    {
+        // the loader resolves the template-name expression by coercing it to a string
+        return ['expr'];
     }
 }
 

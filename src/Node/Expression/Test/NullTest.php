@@ -12,6 +12,7 @@
 namespace Twig\Node\Expression\Test;
 
 use Twig\Compiler;
+use Twig\Node\CoercesChildrenToStringInterface;
 use Twig\Node\Expression\TestExpression;
 
 /**
@@ -21,7 +22,7 @@ use Twig\Node\Expression\TestExpression;
  *
  * @author Fabien Potencier <fabien@symfony.com>
  */
-class NullTest extends TestExpression
+class NullTest extends TestExpression implements CoercesChildrenToStringInterface
 {
     public function compile(Compiler $compiler)
     {
@@ -30,6 +31,12 @@ class NullTest extends TestExpression
             ->subcompile($this->getNode('node'))
             ->raw(')')
         ;
+    }
+
+    public function getStringCoercedChildNames(): array
+    {
+        // `=== null` is strict, no coercion
+        return [];
     }
 }
 

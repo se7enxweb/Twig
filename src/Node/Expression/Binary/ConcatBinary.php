@@ -13,12 +13,18 @@
 namespace Twig\Node\Expression\Binary;
 
 use Twig\Compiler;
+use Twig\Node\CoercesChildrenToStringInterface;
 
-class ConcatBinary extends AbstractBinary
+class ConcatBinary extends AbstractBinary implements CoercesChildrenToStringInterface
 {
     public function operator(Compiler $compiler)
     {
         return $compiler->raw('.');
+    }
+
+    public function getStringCoercedChildNames(): array
+    {
+        return ['left', 'right'];
     }
 }
 

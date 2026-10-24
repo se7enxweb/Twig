@@ -13,9 +13,10 @@
 namespace Twig\Node\Expression;
 
 use Twig\Compiler;
+use Twig\Node\CoercesChildrenToStringInterface;
 use Twig\Node\Node;
 
-class FilterExpression extends CallExpression
+class FilterExpression extends CallExpression implements CoercesChildrenToStringInterface
 {
     public function __construct(Node $node, ConstantExpression $filterName, Node $arguments, int $lineno, ?string $tag = null)
     {
@@ -36,6 +37,12 @@ class FilterExpression extends CallExpression
         $this->setAttribute('is_variadic', $filter->isVariadic());
 
         $this->compileCallable($compiler);
+    }
+
+    public function getStringCoercedChildNames(): array
+    {
+        // a filter may coerce its input and arguments to string (e.g. `upper`, `replace`)
+        return ['node', 'arguments'];
     }
 }
 

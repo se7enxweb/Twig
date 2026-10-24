@@ -12,9 +12,10 @@
 namespace Twig\Node\Expression;
 
 use Twig\Compiler;
+use Twig\Node\CoercesChildrenToStringInterface;
 use Twig\Node\Node;
 
-class FunctionExpression extends CallExpression
+class FunctionExpression extends CallExpression implements CoercesChildrenToStringInterface
 {
     public function __construct(string $name, Node $arguments, int $lineno)
     {
@@ -39,6 +40,12 @@ class FunctionExpression extends CallExpression
         $this->setAttribute('is_variadic', $function->isVariadic());
 
         $this->compileCallable($compiler);
+    }
+
+    public function getStringCoercedChildNames(): array
+    {
+        // a function may coerce its arguments to string (the host PHP code is opaque to Twig)
+        return ['arguments'];
     }
 }
 

@@ -28,7 +28,7 @@ use Twig\Source;
  *
  * @final since Twig 2.4.0
  */
-class ModuleNode extends Node
+class ModuleNode extends Node implements CoercesChildrenToStringInterface
 {
     public function __construct(Node $body, ?AbstractExpression $parent, Node $blocks, Node $macros, Node $traits, $embeddedTemplates, Source $source)
     {
@@ -466,6 +466,12 @@ class ModuleNode extends Node
         } else {
             throw new \LogicException('Trait templates can only be constant nodes.');
         }
+    }
+
+    public function getStringCoercedChildNames(): array
+    {
+        // the parent expression is resolved through the loader, which coerces it to a string
+        return $this->hasNode('parent') ? ['parent'] : [];
     }
 }
 
