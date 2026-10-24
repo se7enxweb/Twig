@@ -63,6 +63,14 @@ final class SandboxExtension extends AbstractExtension
         return $this->sandboxedGlobally;
     }
 
+    /**
+     * @internal
+     */
+    public function hasSourcePolicy(): bool
+    {
+        return null !== $this->sourcePolicy;
+    }
+
     private function isSourceSandboxed(?Source $source): bool
     {
         if (null === $source || null === $this->sourcePolicy) {

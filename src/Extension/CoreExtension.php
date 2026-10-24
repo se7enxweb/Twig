@@ -254,7 +254,7 @@ final class CoreExtension extends AbstractExtension
             new TwigFilter('sort', 'twig_sort_filter', ['needs_environment' => true]),
             new TwigFilter('merge', 'twig_array_merge'),
             new TwigFilter('batch', 'twig_array_batch'),
-            new TwigFilter('column', 'twig_array_column'),
+            new TwigFilter('column', 'twig_array_column', ['needs_environment' => true]),
             new TwigFilter('filter', 'twig_array_filter', ['needs_environment' => true]),
             new TwigFilter('map', 'twig_array_map', ['needs_environment' => true]),
             new TwigFilter('reduce', 'twig_array_reduce', ['needs_environment' => true]),
@@ -1645,12 +1645,27 @@ function twig_get_attribute(Environment $env, Source $source, $object, $item, ar
  *
  * @return array The array of values
  */
-function twig_array_column($array, $name, $index = null): array
+function twig_array_column(Environment $env, $array, $name, $index = null): array
 {
     if ($array instanceof Traversable) {
         $array = iterator_to_array($array);
     } elseif (!\is_array($array)) {
         throw new RuntimeError(sprintf('The column filter only works with arrays or "Traversable", got "%s" as first argument.', \gettype($array)));
+    }
+
+    if (twig_resolve_is_sandboxed($env)) {
+        // array_column() reads public properties of objects, so the property policy applies; the sandbox
+        // may be enabled by a SourcePolicyInterface for the calling template only, so the policy is
+        // checked directly instead of through SandboxExtension::checkPropertyAllowed()
+        $policy = $env->getExtension(SandboxExtension::class)->getSecurityPolicy();
+        foreach ($array as $item) {
+            if (\is_object($item)) {
+                $policy->checkPropertyAllowed($item, (string) $name);
+                if (null !== $index) {
+                    $policy->checkPropertyAllowed($item, (string) $index);
+                }
+            }
+        }
     }
 
     return array_column($array, $name, $index);
@@ -1701,8 +1716,46 @@ function twig_array_reduce(Environment $env, $array, $arrow, $initial = null)
 
 function twig_check_arrow_in_sandbox(Environment $env, $arrow, $thing, $type)
 {
-    if (!$arrow instanceof Closure && $env->hasExtension('\Twig\Extension\SandboxExtension') && $env->getExtension('\Twig\Extension\SandboxExtension')->isSandboxed()) {
+    if (!$arrow instanceof Closure && twig_resolve_is_sandboxed($env)) {
         throw new RuntimeError(sprintf('The callable passed to the "%s" %s must be a Closure in sandbox mode.', $thing, $type));
     }
+}
+
+/**
+ * Recovers the Source of the calling template by walking the PHP backtrace.
+ *
+ * The filters and tests of this file have no access to the template that calls them, while a
+ * SourcePolicyInterface decides per template whether the sandbox applies.
+ *
+ * @internal
+ */
+function twig_resolve_caller_source(): ?Source
+{
+    foreach (debug_backtrace(\DEBUG_BACKTRACE_PROVIDE_OBJECT | \DEBUG_BACKTRACE_IGNORE_ARGS) as $trace) {
+        if (isset($trace['object']) && $trace['object'] instanceof Template) {
+            return $trace['object']->getSourceContext();
+        }
+    }
+
+    return null;
+}
+
+/**
+ * Tells whether the sandbox applies to the calling template, including a sandbox enabled by a source policy.
+ *
+ * @internal
+ */
+function twig_resolve_is_sandboxed(Environment $env): bool
+{
+    if (!$env->hasExtension(SandboxExtension::class)) {
+        return false;
+    }
+
+    $sandbox = $env->getExtension(SandboxExtension::class);
+    if ($sandbox->isSandboxed()) {
+        return true;
+    }
+
+    return $sandbox->hasSourcePolicy() && $sandbox->isSandboxed(twig_resolve_caller_source());
 }
 }

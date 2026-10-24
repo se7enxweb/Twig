@@ -13,6 +13,7 @@ namespace Twig\Tests\Extension;
 
 use PHPUnit\Framework\TestCase;
 use Twig\Environment;
+use Twig\Error\RuntimeError;
 use Twig\Error\SyntaxError;
 use Twig\Extension\SandboxExtension;
 use Twig\Extension\StringLoaderExtension;
@@ -862,6 +863,143 @@ EOF
         }
     }
 
+    public function testSandboxAllowsColumnFilterOnAllowedProperty()
+    {
+        $params = ['obj' => new ColumnObject()];
+        $twig = $this->getEnvironment(true, [], ['index' => "{{ [obj]|column('bar')|first }}"], [], ['column', 'first'], [], ['Twig\Tests\Extension\ColumnObject' => ['bar']]);
+
+        $this->assertSame('bar', $twig->load('index')->render($params));
+    }
+
+    /**
+     * @dataProvider getColumnFilterSandboxModes
+     */
+    public function testSandboxBlocksColumnFilterOnDisallowedProperty($sandboxedGlobally)
+    {
+        $params = ['obj' => new ColumnObject()];
+        $twig = $this->getEnvironment($sandboxedGlobally, [], ['index' => "{{ [obj]|column('bar')|first }}"], [], ['column', 'first'], [], [], [], $sandboxedGlobally ? null : $this->getAlwaysSandboxedSourcePolicy());
+
+        try {
+            $twig->load('index')->render($params);
+            $this->fail('Sandbox should reject the "column" filter when the requested property is not in allowedProperties');
+        } catch (SecurityNotAllowedPropertyError $e) {
+            $this->assertSame('Twig\Tests\Extension\ColumnObject', $e->getClassName());
+            $this->assertSame('bar', $e->getPropertyName());
+        }
+    }
+
+    /**
+     * @dataProvider getColumnFilterSandboxModes
+     */
+    public function testSandboxBlocksColumnFilterOnDisallowedIndex($sandboxedGlobally)
+    {
+        $params = ['obj' => new ColumnObject()];
+        $twig = $this->getEnvironment($sandboxedGlobally, [], ['index' => "{{ [obj]|column('bar', 'foo')|keys|first }}"], [], ['column', 'first', 'keys'], [], ['Twig\Tests\Extension\ColumnObject' => ['bar']], [], $sandboxedGlobally ? null : $this->getAlwaysSandboxedSourcePolicy());
+
+        try {
+            $twig->load('index')->render($params);
+            $this->fail('Sandbox should reject the "column" filter when the index argument targets a disallowed property');
+        } catch (SecurityNotAllowedPropertyError $e) {
+            $this->assertSame('Twig\Tests\Extension\ColumnObject', $e->getClassName());
+            $this->assertSame('foo', $e->getPropertyName());
+        }
+    }
+
+    /**
+     * @dataProvider getColumnFilterSandboxModes
+     */
+    public function testSandboxBlocksColumnFilterOnMagicGetter($sandboxedGlobally)
+    {
+        $params = ['magic' => new MagicObject()];
+        $twig = $this->getEnvironment($sandboxedGlobally, [], ['index' => "{{ [magic]|column('anything')|first }}"], [], ['column', 'first'], [], [], [], $sandboxedGlobally ? null : $this->getAlwaysSandboxedSourcePolicy());
+
+        try {
+            $twig->load('index')->render($params);
+            $this->fail('Sandbox should reject the "column" filter before invoking __get on a non-allowlisted property');
+        } catch (SecurityNotAllowedPropertyError $e) {
+            $this->assertSame('Twig\Tests\Extension\MagicObject', $e->getClassName());
+            $this->assertSame('anything', $e->getPropertyName());
+        }
+    }
+
+    public function getColumnFilterSandboxModes()
+    {
+        return [
+            'sandboxed globally' => [true],
+            'sandboxed by a source policy' => [false],
+        ];
+    }
+
+    public function testSourcePolicySandboxAllowsColumnFilterOnAllowedProperty()
+    {
+        $params = ['obj' => new ColumnObject()];
+        $twig = $this->getEnvironment(false, [], ['index' => "{{ [obj]|column('bar')|first }}"], [], ['column', 'first'], [], ['Twig\Tests\Extension\ColumnObject' => ['bar']], [], $this->getAlwaysSandboxedSourcePolicy());
+
+        $this->assertSame('bar', $twig->load('index')->render($params));
+    }
+
+    public function testColumnFilterUnaffectedOutsideSandbox()
+    {
+        $params = ['obj' => new ColumnObject()];
+        $twig = $this->getEnvironment(false, [], ['index' => "{{ [obj]|column('bar')|first }}"]);
+
+        $this->assertSame('bar', $twig->load('index')->render($params));
+    }
+
+    /**
+     * @dataProvider provideSourcePolicyArrowBlockedTemplates
+     */
+    public function testSourcePolicyBlocksNonClosureCallableInArrow($template)
+    {
+        $twig = $this->getEnvironment(false, [], ['1_basic' => $template], [], ['sort', 'filter', 'map', 'reduce', 'join'], [], [], [], $this->getAlwaysSandboxedSourcePolicy());
+
+        try {
+            $twig->load('1_basic')->render([]);
+            $this->fail('A callable that is not a Closure must be refused when a source policy enables the sandbox');
+        } catch (RuntimeError $e) {
+            $this->assertStringContainsString('must be a Closure in sandbox mode', $e->getMessage());
+        }
+    }
+
+    public function provideSourcePolicyArrowBlockedTemplates()
+    {
+        return [
+            'sort' => ['{{ ["a","b"]|sort("strnatcasecmp")|join }}'],
+            'filter' => ['{{ ["a","b"]|filter("is_string")|join }}'],
+            'map' => ['{{ ["a","b"]|map("strtoupper")|join }}'],
+            'reduce' => ['{{ [1,2]|reduce("max") }}'],
+        ];
+    }
+
+    public function testSourcePolicyAllowsClosureInArrow()
+    {
+        $twig = $this->getEnvironment(false, [], ['1_basic' => '{{ ["b","a"]|sort((a, b) => a < b ? -1 : 1)|join(",") }}'], [], ['sort', 'join'], [], [], [], $this->getAlwaysSandboxedSourcePolicy());
+        $this->assertSame('a,b', $twig->load('1_basic')->render([]));
+    }
+
+    public function testNonSandboxedSourcePolicyAllowsNonClosureCallable()
+    {
+        $sourcePolicy = new class() implements SourcePolicyInterface {
+            public function enableSandbox(Source $source): bool
+            {
+                return false;
+            }
+        };
+
+        $twig = $this->getEnvironment(false, [], ['1_basic' => '{{ ["b","a"]|sort("strnatcasecmp")|join(",") }}'], [], ['sort', 'join'], [], [], [], $sourcePolicy);
+        $this->assertSame('a,b', $twig->load('1_basic')->render([]));
+    }
+
+    private function getAlwaysSandboxedSourcePolicy(): SourcePolicyInterface
+    {
+        return new class() implements SourcePolicyInterface {
+            public function enableSandbox(Source $source): bool
+            {
+                return true;
+            }
+        };
+    }
+
     protected function getEnvironment($sandboxed, $options, $templates, $tags = [], $filters = [], $methods = [], $properties = [], $functions = [], $sourcePolicy = null)
     {
         $loader = new ArrayLoader($templates);
@@ -1047,4 +1185,11 @@ class CyclicTraversableObject implements \IteratorAggregate
     {
         return new \ArrayIterator([$this]);
     }
+}
+
+// Plain object without __toString: the column tests exercise property access, not
+// string coercion, so the array elements must not have __toString().
+class ColumnObject
+{
+    public $bar = 'bar';
 }
