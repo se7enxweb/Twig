@@ -5,6 +5,16 @@
 
     The ``spaceless`` filter was added in Twig 2.7.
 
+.. caution::
+
+    The ``spaceless`` filter is declared safe for the ``html`` context, so its
+    output is not auto-escaped. Its input is therefore pre-escaped by the
+    auto-escaper when needed (as of Twig 2.16.5). If you re-implement this
+    filter in your own code, declare it with both ``'pre_escape' => 'html'``
+    and ``'is_safe' => ['html']``: declaring ``is_safe`` without ``pre_escape``
+    is equivalent to piping user input through ``|raw`` and opens an XSS
+    vector.
+
 Use the ``spaceless`` filter to remove whitespace *between HTML tags*, not
 whitespace within HTML tags or whitespace in plain text:
 
