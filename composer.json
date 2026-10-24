@@ -24,7 +24,7 @@
         }
     ],
     "replace": {
-        "twig/twig": "*"
+        "twig/twig": "self.version"
     },
     "require": {
         "php": ">=7.1.3",
