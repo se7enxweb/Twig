@@ -1175,12 +1175,16 @@ function twig_call_macro(Template $template, string $method, array $args, int $l
         $parent = $template;
         while ($parent = $parent->getParent($context)) {
             if (method_exists($parent, $method)) {
+                $parent->ensureSecurityChecked();
+
                 return $parent->$method(...$args);
             }
         }
 
         throw new RuntimeError(sprintf('Macro "%s" is not defined in template "%s".', substr($method, \strlen('macro_')), $template->getTemplateName()), $lineno, $source);
     }
+
+    $template->ensureSecurityChecked();
 
     return $template->$method(...$args);
 }
@@ -1294,10 +1298,6 @@ function twig_include(Environment $env, $context, $template, $variables = [], $w
             if (!$ignoreMissing) {
                 throw $e;
             }
-        }
-
-        if ($isSandboxed && $loaded) {
-            $loaded->unwrap()->checkSecurity();
         }
 
         return $loaded ? $loaded->render($variables) : '';
