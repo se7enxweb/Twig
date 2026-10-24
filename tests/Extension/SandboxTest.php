@@ -38,7 +38,11 @@ class SandboxTest extends TestCase
             'obj' => new FooObject(),
             'arr' => ['obj' => new FooObject()],
             'child_obj' => new ChildClass(),
+            'some_array' => [5, 6, 7, new FooObject()],
+            'recursion' => [4],
         ];
+        self::$params['recursion'][] = &self::$params['recursion'];
+        self::$params['recursion'][] = new FooObject();
 
         self::$templates = [
             '1_basic1' => '{{ obj.foo }}',
@@ -191,7 +195,7 @@ class SandboxTest extends TestCase
      */
     public function testSandboxUnallowedToString($template)
     {
-        $twig = $this->getEnvironment(true, [], ['index' => $template], [], ['upper'], ['Twig\Tests\Extension\FooObject' => 'getAnotherFooObject'], [], ['random']);
+        $twig = $this->getEnvironment(true, [], ['index' => $template], [], ['upper', 'join', 'replace'], ['Twig\Tests\Extension\FooObject' => 'getAnotherFooObject'], [], ['random']);
         try {
             $twig->load('index')->render(self::$params);
             $this->fail('Sandbox throws a SecurityError exception if an unallowed method (__toString()) is called in the template');
@@ -218,6 +222,15 @@ class SandboxTest extends TestCase
             'object_chain_and_function' => ['{{ random(obj.anotherFooObject) }}'],
             'concat' => ['{{ obj ~ "" }}'],
             'concat_again' => ['{{ "" ~ obj }}'],
+            'object_in_arguments' => ['{{ "__toString"|replace({"__toString": obj}) }}'],
+            'object_in_array' => ['{{ [12, "foo", obj]|join(", ") }}'],
+            'object_in_array_var' => ['{{ some_array|join(", ") }}'],
+            'object_in_array_nested' => ['{{ [12, "foo", [12, "foo", obj]]|join(", ") }}'],
+            'object_in_array_var_nested' => ['{{ [12, "foo", some_array]|join(", ") }}'],
+            'object_in_array_dynamic_key' => ['{{ {(obj): "foo"}|join(", ") }}'],
+            'object_in_array_dynamic_key_nested' => ['{{ {"foo": { (obj): "foo" }}|join(", ") }}'],
+            'context' => ['{{ _context|join(", ") }}'],
+            'recursion' => ['{{ recursion|join(", ") }}'],
         ];
     }
 

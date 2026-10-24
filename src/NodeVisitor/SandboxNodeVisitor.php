@@ -15,6 +15,7 @@ use Twig\Environment;
 use Twig\Node\CheckSecurityCallNode;
 use Twig\Node\CheckSecurityNode;
 use Twig\Node\CheckToStringNode;
+use Twig\Node\Expression\ArrayExpression;
 use Twig\Node\Expression\Binary\ConcatBinary;
 use Twig\Node\Expression\Binary\RangeBinary;
 use Twig\Node\Expression\FilterExpression;
@@ -117,6 +118,10 @@ final class SandboxNodeVisitor extends AbstractNodeVisitor
         $expr = $node->getNode($name);
         if ($expr instanceof NameExpression || $expr instanceof GetAttrExpression) {
             $node->setNode($name, new CheckToStringNode($expr));
+        } elseif ($expr instanceof ArrayExpression) {
+            foreach ($expr as $name => $_) {
+                $this->wrapNode($expr, $name);
+            }
         }
     }
 
