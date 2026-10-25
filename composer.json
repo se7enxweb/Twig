@@ -1,5 +1,5 @@
 {
-    "name": "twig/twig",
+    "name": "se7enxweb/twig",
     "type": "library",
     "description": "Twig, the flexible, fast, and secure template language for PHP",
     "keywords": ["templating"],
@@ -23,6 +23,9 @@
             "role": "Project Founder"
         }
     ],
+    "replace": {
+        "twig/twig": "self.version"
+    },
     "require": {
         "php": ">=8.0.2",
         "symfony/deprecation-contracts": "^2.5|^3",
