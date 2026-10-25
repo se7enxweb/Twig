@@ -26,6 +26,7 @@ use Twig\Sandbox\SecurityNotAllowedMethodError;
 use Twig\Sandbox\SecurityNotAllowedPropertyError;
 use Twig\Sandbox\SecurityNotAllowedTagError;
 use Twig\Sandbox\SecurityPolicy;
+use Twig\Sandbox\SourcePolicyInterface;
 use Twig\Source;
 
 class SandboxTest extends TestCase
