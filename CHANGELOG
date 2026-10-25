@@ -16,7 +16,8 @@ The security fixes of Twig 3.26.0 and 3.27.0, backported to 3.19, the last 3.x l
  * Fix sandbox `__toString` policy bypass via dynamic mapping keys (CVE-2026-48806)
  * Fix sandbox filter, tag and function allow-list bypass when the sandbox state changes between renders (CVE-2026-46636, CVE-2026-49981)
  * Document `template_from_string` caveats in a sandboxed environment (CVE-2026-46634) and that the sandbox does not protect against resource exhaustion (CVE-2026-46627)
- * Replace `twig/twig` at the package's own version
+ * Fix unbounded memoisation of `IntlDateFormatter` / `NumberFormatter` in the intl extension (CVE-2026-46629)
+ * Replace `twig/twig` at the package's own version; ship the intl extension and replace `twig/intl-extra` at the same version
 
 # 3.19.0 (2025-01-28)
 
