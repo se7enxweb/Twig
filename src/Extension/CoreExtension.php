@@ -227,14 +227,14 @@ final class CoreExtension extends AbstractExtension
             // array helpers
             new TwigFilter('join', [self::class, 'join']),
             new TwigFilter('split', [self::class, 'split'], ['needs_charset' => true]),
-            new TwigFilter('sort', [self::class, 'sort'], ['needs_environment' => true]),
+            new TwigFilter('sort', [self::class, 'sort'], ['needs_environment' => true, 'needs_is_sandboxed' => true]),
             new TwigFilter('merge', [self::class, 'merge']),
             new TwigFilter('batch', [self::class, 'batch']),
             new TwigFilter('column', [self::class, 'column']),
-            new TwigFilter('filter', [self::class, 'filter'], ['needs_environment' => true]),
-            new TwigFilter('map', [self::class, 'map'], ['needs_environment' => true]),
-            new TwigFilter('reduce', [self::class, 'reduce'], ['needs_environment' => true]),
-            new TwigFilter('find', [self::class, 'find'], ['needs_environment' => true]),
+            new TwigFilter('filter', [self::class, 'filter'], ['needs_environment' => true, 'needs_is_sandboxed' => true]),
+            new TwigFilter('map', [self::class, 'map'], ['needs_environment' => true, 'needs_is_sandboxed' => true]),
+            new TwigFilter('reduce', [self::class, 'reduce'], ['needs_environment' => true, 'needs_is_sandboxed' => true]),
+            new TwigFilter('find', [self::class, 'find'], ['needs_environment' => true, 'needs_is_sandboxed' => true]),
 
             // string/array filters
             new TwigFilter('reverse', [self::class, 'reverse'], ['needs_charset' => true]),
@@ -958,7 +958,7 @@ final class CoreExtension extends AbstractExtension
      *
      * @internal
      */
-    public static function sort(Environment $env, $array, $arrow = null): array
+    public static function sort(Environment $env, bool $isSandboxed, $array, $arrow = null): array
     {
         if ($array instanceof \Traversable) {
             $array = iterator_to_array($array);
@@ -967,7 +967,7 @@ final class CoreExtension extends AbstractExtension
         }
 
         if (null !== $arrow) {
-            self::checkArrowInSandbox($env, $arrow, 'sort', 'filter');
+            self::checkArrowInSandbox($isSandboxed, $arrow, 'sort', 'filter');
 
             uasort($array, $arrow);
         } else {
@@ -1805,13 +1805,13 @@ final class CoreExtension extends AbstractExtension
     /**
      * @internal
      */
-    public static function filter(Environment $env, $array, $arrow)
+    public static function filter(Environment $env, bool $isSandboxed, $array, $arrow)
     {
         if (!is_iterable($array)) {
             throw new RuntimeError(\sprintf('The "filter" filter expects a sequence/mapping or "Traversable", got "%s".', \is_object($array) ? \get_class($array) : \gettype($array)));
         }
 
-        self::checkArrowInSandbox($env, $arrow, 'filter', 'filter');
+        self::checkArrowInSandbox($isSandboxed, $arrow, 'filter', 'filter');
 
         if (\is_array($array)) {
             return array_filter($array, $arrow, \ARRAY_FILTER_USE_BOTH);
@@ -1824,9 +1824,9 @@ final class CoreExtension extends AbstractExtension
     /**
      * @internal
      */
-    public static function find(Environment $env, $array, $arrow)
+    public static function find(Environment $env, bool $isSandboxed, $array, $arrow)
     {
-        self::checkArrowInSandbox($env, $arrow, 'find', 'filter');
+        self::checkArrowInSandbox($isSandboxed, $arrow, 'find', 'filter');
 
         foreach ($array as $k => $v) {
             if ($arrow($v, $k)) {
@@ -1840,9 +1840,9 @@ final class CoreExtension extends AbstractExtension
     /**
      * @internal
      */
-    public static function map(Environment $env, $array, $arrow)
+    public static function map(Environment $env, bool $isSandboxed, $array, $arrow)
     {
-        self::checkArrowInSandbox($env, $arrow, 'map', 'filter');
+        self::checkArrowInSandbox($isSandboxed, $arrow, 'map', 'filter');
 
         $r = [];
         foreach ($array as $k => $v) {
@@ -1855,9 +1855,9 @@ final class CoreExtension extends AbstractExtension
     /**
      * @internal
      */
-    public static function reduce(Environment $env, $array, $arrow, $initial = null)
+    public static function reduce(Environment $env, bool $isSandboxed, $array, $arrow, $initial = null)
     {
-        self::checkArrowInSandbox($env, $arrow, 'reduce', 'filter');
+        self::checkArrowInSandbox($isSandboxed, $arrow, 'reduce', 'filter');
 
         if (!\is_array($array) && !$array instanceof \Traversable) {
             throw new RuntimeError(\sprintf('The "reduce" filter only works with sequences/mappings or "Traversable", got "%s" as first argument.', \gettype($array)));
@@ -1874,9 +1874,9 @@ final class CoreExtension extends AbstractExtension
     /**
      * @internal
      */
-    public static function arraySome(Environment $env, $array, $arrow)
+    public static function arraySome(Environment $env, $array, $arrow, bool $isSandboxed = false)
     {
-        self::checkArrowInSandbox($env, $arrow, 'has some', 'operator');
+        self::checkArrowInSandbox($isSandboxed, $arrow, 'has some', 'operator');
 
         foreach ($array as $k => $v) {
             if ($arrow($v, $k)) {
@@ -1890,9 +1890,9 @@ final class CoreExtension extends AbstractExtension
     /**
      * @internal
      */
-    public static function arrayEvery(Environment $env, $array, $arrow)
+    public static function arrayEvery(Environment $env, $array, $arrow, bool $isSandboxed = false)
     {
-        self::checkArrowInSandbox($env, $arrow, 'has every', 'operator');
+        self::checkArrowInSandbox($isSandboxed, $arrow, 'has every', 'operator');
 
         foreach ($array as $k => $v) {
             if (!$arrow($v, $k)) {
@@ -1906,9 +1906,9 @@ final class CoreExtension extends AbstractExtension
     /**
      * @internal
      */
-    public static function checkArrowInSandbox(Environment $env, $arrow, $thing, $type)
+    public static function checkArrowInSandbox(bool $isSandboxed, $arrow, $thing, $type)
     {
-        if (!$arrow instanceof \Closure && $env->hasExtension(SandboxExtension::class) && $env->getExtension(SandboxExtension::class)->isSandboxed()) {
+        if (!$arrow instanceof \Closure && $isSandboxed) {
             throw new RuntimeError(\sprintf('The callable passed to the "%s" %s must be a Closure in sandbox mode.', $thing, $type));
         }
     }
