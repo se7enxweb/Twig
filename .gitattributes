@@ -1,6 +1,14 @@
 /.github/ export-ignore
 /doc/ export-ignore
-/extra/ export-ignore
+/extra/cache-extra/ export-ignore
+/extra/cssinliner-extra/ export-ignore
+/extra/html-extra/ export-ignore
+/extra/inky-extra/ export-ignore
+/extra/markdown-extra/ export-ignore
+/extra/string-extra/ export-ignore
+/extra/twig-extra-bundle/ export-ignore
+/extra/intl-extra/Tests/ export-ignore
+/extra/intl-extra/phpunit.xml.dist export-ignore
 /tests/ export-ignore
 /.editorconfig export-ignore
 /.gitattributes export-ignore

@@ -1,5 +1,5 @@
 {
-    "name": "twig/twig",
+    "name": "se7enxweb/twig",
     "type": "library",
     "description": "Twig, the flexible, fast, and secure template language for PHP",
     "keywords": ["templating"],
@@ -23,13 +23,18 @@
             "role": "Project Founder"
         }
     ],
+    "replace": {
+        "twig/twig": "self.version",
+        "twig/intl-extra": "self.version"
+    },
     "require": {
         "php": ">=7.2.5",
         "symfony/polyfill-php80": "^1.22",
         "symfony/deprecation-contracts": "^2.5|^3",
         "symfony/polyfill-mbstring": "^1.3",
         "symfony/polyfill-ctype": "^1.8",
-        "symfony/polyfill-php81": "^1.29"
+        "symfony/polyfill-php81": "^1.29",
+        "symfony/intl": "^5.4|^6.4|^7.0"
     },
     "require-dev": {
         "symfony/phpunit-bridge": "^5.4.9|^6.4|^7.0",
@@ -42,8 +47,12 @@
             "src/Resources/escaper.php",
             "src/Resources/string_loader.php"
         ],
+        "exclude-from-classmap": [
+            "/extra/intl-extra/Tests/"
+        ],
         "psr-4" : {
-            "Twig\\" : "src/"
+            "Twig\\" : "src/",
+            "Twig\\Extra\\Intl\\" : "extra/intl-extra/"
         }
     },
     "autoload-dev": {
