@@ -1,9 +1,5 @@
 --TEST--
 "spaceless" filter pre-escapes its input under autoescape
---DEPRECATION--
-Since twig/twig 3.12: Twig Filter "spaceless" is deprecated in index.twig at line 3.
-Since twig/twig 3.12: Twig Filter "spaceless" is deprecated in index.twig at line 5.
-Since twig/twig 3.12: Twig Filter "spaceless" is deprecated in index.twig at line 7.
 --TEMPLATE--
 {% autoescape 'html' %}
 1. {{ payload|spaceless }}

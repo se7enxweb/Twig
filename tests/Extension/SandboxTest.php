@@ -25,6 +25,7 @@ use Twig\Sandbox\SecurityNotAllowedMethodError;
 use Twig\Sandbox\SecurityNotAllowedPropertyError;
 use Twig\Sandbox\SecurityNotAllowedTagError;
 use Twig\Sandbox\SecurityPolicy;
+use Twig\Sandbox\SourcePolicyInterface;
 use Twig\Source;
 
 class SandboxTest extends TestCase
@@ -1218,8 +1219,11 @@ class ColumnObject
 // ...) materialise the iterable and coerce its contents to string.
 class StringableTraversableObject implements \IteratorAggregate, \Stringable
 {
-    public function __construct(private array $items)
+    private $items;
+
+    public function __construct(array $items)
     {
+        $this->items = $items;
     }
 
     public function __toString(): string

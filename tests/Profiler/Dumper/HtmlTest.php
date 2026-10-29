@@ -39,8 +39,12 @@ EOF
         $child = new Profile('<img src=x onerror=alert(1)>', Profile::TEMPLATE);
         $grandchild = new Profile('<img src=x onerror=alert(2)>', Profile::MACRO, '<img src=x onerror=alert(3)>');
 
-        (new \ReflectionProperty($child, 'profiles'))->setValue($child, [$grandchild]);
-        (new \ReflectionProperty($root, 'profiles'))->setValue($root, [$child]);
+        $profiles = new \ReflectionProperty(Profile::class, 'profiles');
+        if (\PHP_VERSION_ID < 80100) {
+            $profiles->setAccessible(true);
+        }
+        $profiles->setValue($child, [$grandchild]);
+        $profiles->setValue($root, [$child]);
 
         $output = (new HtmlDumper())->dump($root);
 
