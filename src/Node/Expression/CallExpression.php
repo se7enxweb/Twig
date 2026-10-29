@@ -89,6 +89,14 @@ abstract class CallExpression extends AbstractExpression
             $first = false;
         }
 
+        if ($this->hasAttribute('needs_is_sandboxed') && $this->getAttribute('needs_is_sandboxed')) {
+            if (!$first) {
+                $compiler->raw(', ');
+            }
+            $compiler->raw('$this->env->hasExtension(\Twig\Extension\SandboxExtension::class) && $this->env->getExtension(\Twig\Extension\SandboxExtension::class)->isSandboxed($this->source)');
+            $first = false;
+        }
+
         if ($this->hasAttribute('arguments')) {
             foreach ($this->getAttribute('arguments') as $argument) {
                 if (!$first) {
@@ -269,6 +277,9 @@ abstract class CallExpression extends AbstractExpression
             array_shift($parameters);
         }
         if ($this->hasAttribute('needs_context') && $this->getAttribute('needs_context')) {
+            array_shift($parameters);
+        }
+        if ($this->hasAttribute('needs_is_sandboxed') && $this->getAttribute('needs_is_sandboxed')) {
             array_shift($parameters);
         }
         if ($this->hasAttribute('arguments') && null !== $this->getAttribute('arguments')) {

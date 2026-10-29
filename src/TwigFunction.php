@@ -39,6 +39,7 @@ final class TwigFunction
             'needs_environment' => false,
             'needs_context' => false,
             'needs_charset' => false,
+            'needs_is_sandboxed' => false,
             'is_variadic' => false,
             'is_safe' => null,
             'is_safe_callback' => null,
@@ -92,6 +93,15 @@ final class TwigFunction
     public function needsContext(): bool
     {
         return $this->options['needs_context'];
+    }
+
+    /**
+     * Whether the callable needs the sandbox state of the calling template passed as an argument
+     * (after the charset, the environment and the context).
+     */
+    public function needsIsSandboxed(): bool
+    {
+        return $this->options['needs_is_sandboxed'];
     }
 
     public function getSafe(Node $functionArgs): ?array

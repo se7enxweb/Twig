@@ -30,6 +30,7 @@ class FunctionExpression extends CallExpression
         $this->setAttribute('needs_charset', $function->needsCharset());
         $this->setAttribute('needs_environment', $function->needsEnvironment());
         $this->setAttribute('needs_context', $function->needsContext());
+        $this->setAttribute('needs_is_sandboxed', $function->needsIsSandboxed());
         $this->setAttribute('arguments', $function->getArguments());
         $callable = $function->getCallable();
         if ('constant' === $name && $this->getAttribute('is_defined_test')) {
