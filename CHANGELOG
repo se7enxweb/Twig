@@ -1,3 +1,23 @@
+# 3.11.4 (2026-10-28, se7enxweb/twig)
+
+The security fixes of Twig 3.26.0 and 3.27.0, backported to 3.11, the last 3.x line that runs on PHP 7.2.5 to 7.4.
+
+ * Add a `needs_is_sandboxed` option for filters and functions (from 3.25.0, needed by the fixes below)
+ * Fix sandbox bypass: propagate the sandbox state to the arrow checks for source-policy sandboxing (CVE-2026-24425)
+ * Fix sandbox bypass in the deprecated internal wrappers (CVE-2026-48805)
+ * [Profiler] Escape template and profile names in `HtmlDumper`; restrict the allowed classes in `Profile::unserialize()` (CVE-2026-47730)
+ * Fix PHP code injection via the `{% use %}` template name; encode single quotes as `\x27` in `Compiler::string()` (CVE-2026-46633)
+ * Fix sandbox bypass in the `{% sandbox %}` tag when including a preloaded template (CVE-2026-46638)
+ * Fix sandbox `__toString` bypasses; add `Twig\Node\CoercesChildrenToStringInterface` (CVE-2026-47732)
+ * Fix sandbox bypass in the `column` filter, also under a source policy (CVE-2026-46635, CVE-2026-48808)
+ * Pre-escape HTML input on the `spaceless` filter (CVE-2026-46628)
+ * Fix sandbox `__toString` bypasses via Traversable in `join`/`replace`, the `in`/`not in` operators and Stringable Traversables (CVE-2026-48807)
+ * Fix sandbox `__toString` policy bypass via dynamic mapping keys (CVE-2026-48806)
+ * Fix sandbox filter, tag and function allow-list bypass when the sandbox state changes between renders (CVE-2026-46636, CVE-2026-49981)
+ * Document `template_from_string` caveats in a sandboxed environment (CVE-2026-46634) and that the sandbox does not protect against resource exhaustion (CVE-2026-46627)
+ * Fix unbounded memoisation of `IntlDateFormatter` / `NumberFormatter` in the intl extension (CVE-2026-46629)
+ * Replace `twig/twig` at the package's own version; ship the intl extension and replace `twig/intl-extra` at the same version
+
 # 3.11.3 (2024-11-07)
 
  * Fix an infinite recursion in the sandbox code
