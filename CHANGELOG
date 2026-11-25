@@ -1,3 +1,14 @@
+# 3.19.2 (2026-11-25, se7enxweb/twig)
+
+The security fixes of Twig 3.31.0 and 3.31.1 that apply to 3.19, backported for PHP 8.0.
+
+ * Fix sandbox `__toString()` policy bypass via the input of custom tests (CVE-2026-133764)
+ * Fix sandboxed templates rewriting application-owned `Markup` objects through their constructor (CVE-2026-133770)
+ * Fix the `join` filter exposing the properties of non-iterable objects (CVE-2026-133768)
+ * Fix sandbox allow-list and `__toString()` bypass via a dynamic `embed` parent expression (CVE-2026-133767)
+ * Fix missing autoescaping for a variable named like a macro import alias of another scope (CVE-2026-133771)
+ * Fix the non-selected branch of a `guard` tag registering its parent, blocks and macros (CVE-2026-133772)
+
 # 3.19.1 (2026-10-25, se7enxweb/twig)
 
 The security fixes of Twig 3.26.0 and 3.27.0, backported to 3.19, the last 3.x line that runs on PHP 8.0.
