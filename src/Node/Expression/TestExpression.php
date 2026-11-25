@@ -40,12 +40,9 @@ class TestExpression extends CallExpression implements CoercesChildrenToStringIn
 
     public function getStringCoercedChildNames(): array
     {
-        $names = [];
-
-        // the `empty` test triggers an implicit string coercion through `CoreExtension::testEmpty()`
-        if ('empty' === $this->getAttribute('name')) {
-            $names[] = 'node';
-        }
+        // the tested value reaches the host PHP code, which may coerce it to string;
+        // custom node classes must declare their own coercion behavior
+        $names = self::class === static::class ? ['node'] : [];
 
         // a test may coerce its arguments to string (the host PHP code is opaque to Twig)
         if ($this->hasNode('arguments')) {
