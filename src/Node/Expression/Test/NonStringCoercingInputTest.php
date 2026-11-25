@@ -1,0 +1,27 @@
+<?php
+
+/*
+ * This file is part of Twig.
+ *
+ * (c) Fabien Potencier
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+namespace Twig\Node\Expression\Test;
+
+use Twig\Node\Expression\TestExpression;
+
+/**
+ * A test that never coerces its tested value to string.
+ *
+ * @internal
+ */
+final class NonStringCoercingInputTest extends TestExpression
+{
+    public function getStringCoercedChildNames(): array
+    {
+        return $this->hasNode('arguments') ? ['arguments'] : [];
+    }
+}

@@ -17,20 +17,18 @@ use Twig\Node\Expression\ConditionalExpression;
 use Twig\Node\Expression\ConstantExpression;
 use Twig\Node\Expression\FilterExpression;
 use Twig\Node\Expression\FunctionExpression;
-use Twig\Node\Expression\GetAttrExpression;
 use Twig\Node\Expression\MethodCallExpression;
-use Twig\Node\Expression\NameExpression;
 use Twig\Node\Expression\ParentExpression;
 use Twig\Node\Node;
 
 final class SafeAnalysisNodeVisitor extends AbstractNodeVisitor
 {
     private $data = [];
-    private $safeVars = [];
-
+    /**
+     * @deprecated no effect: a name imported as a macro alias is not a safe value in another scope
+     */
     public function setSafeVars($safeVars)
     {
-        $this->safeVars = $safeVars;
     }
 
     public function getSafe(Node $node)
@@ -116,13 +114,6 @@ final class SafeAnalysisNodeVisitor extends AbstractNodeVisitor
             }
         } elseif ($node instanceof MethodCallExpression) {
             if ($node->getAttribute('safe')) {
-                $this->setSafe($node, ['all']);
-            } else {
-                $this->setSafe($node, []);
-            }
-        } elseif ($node instanceof GetAttrExpression && $node->getNode('node') instanceof NameExpression) {
-            $name = $node->getNode('node')->getAttribute('name');
-            if (\in_array($name, $this->safeVars)) {
                 $this->setSafe($node, ['all']);
             } else {
                 $this->setSafe($node, []);

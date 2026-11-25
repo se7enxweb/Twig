@@ -43,6 +43,7 @@ use Twig\Node\Expression\Test\ConstantTest;
 use Twig\Node\Expression\Test\DefinedTest;
 use Twig\Node\Expression\Test\DivisiblebyTest;
 use Twig\Node\Expression\Test\EvenTest;
+use Twig\Node\Expression\Test\NonStringCoercingInputTest;
 use Twig\Node\Expression\Test\NullTest;
 use Twig\Node\Expression\Test\OddTest;
 use Twig\Node\Expression\Test\SameasTest;
@@ -299,7 +300,7 @@ final class CoreExtension extends AbstractExtension
             new TwigTest('divisible by', null, ['node_class' => DivisiblebyTest::class, 'one_mandatory_argument' => true]),
             new TwigTest('constant', null, ['node_class' => ConstantTest::class]),
             new TwigTest('empty', 'twig_test_empty'),
-            new TwigTest('iterable', 'twig_test_iterable'),
+            new TwigTest('iterable', 'twig_test_iterable', ['node_class' => NonStringCoercingInputTest::class]),
         ];
     }
 
@@ -771,7 +772,7 @@ function twig_last(Environment $env, $item)
 function twig_join_filter($value, $glue = '', $and = null)
 {
     if (!twig_test_iterable($value)) {
-        $value = (array) $value;
+        $value = null === $value ? [] : [$value];
     }
 
     $value = twig_to_array($value, false);

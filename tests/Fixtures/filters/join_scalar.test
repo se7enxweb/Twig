@@ -1,0 +1,14 @@
+--TEST--
+"join" filter wraps a non-iterable value instead of casting it to an array
+--TEMPLATE--
+{{ "abc"|join(',') }}
+{{ 12|join(',', ' and ') }}
+{{ null|join(',') }}
+{{ false|join(',') }}
+--DATA--
+return []
+--EXPECT--
+abc
+12
+
+

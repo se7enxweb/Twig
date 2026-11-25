@@ -87,7 +87,8 @@ final class SecurityPolicy implements SecurityPolicyInterface
 
     public function checkMethodAllowed($obj, $method)
     {
-        if ($obj instanceof Template || $obj instanceof Markup) {
+        // the constructor of a Markup instance rewrites its content, so it is checked like any other method
+        if ($obj instanceof Template || ($obj instanceof Markup && '__construct' !== strtolower($method))) {
             return;
         }
 

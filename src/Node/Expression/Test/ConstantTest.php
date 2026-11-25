@@ -46,6 +46,11 @@ class ConstantTest extends TestExpression
             ->raw('))')
         ;
     }
+
+    public function getStringCoercedChildNames(): array
+    {
+        return ['arguments'];
+    }
 }
 
 class_alias('Twig\Node\Expression\Test\ConstantTest', 'Twig_Node_Expression_Test_Constant');
