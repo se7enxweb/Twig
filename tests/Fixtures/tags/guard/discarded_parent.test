@@ -1,0 +1,13 @@
+--TEST--
+"guard" ignores the parent defined in the discarded branch
+--TEMPLATE--
+{% guard function foobar %}{% extends "never.twig" %}{% else %}{% extends "layout.twig" %}{% endguard %}
+{% block content %}content{% endblock %}
+--TEMPLATE(layout.twig)--
+layout {{ block('content') }}
+--TEMPLATE(never.twig)--
+NEVER
+--DATA--
+return []
+--EXPECT--
+layout content

@@ -60,6 +60,7 @@ use Twig\Node\Expression\Test\ConstantTest;
 use Twig\Node\Expression\Test\DefinedTest;
 use Twig\Node\Expression\Test\DivisiblebyTest;
 use Twig\Node\Expression\Test\EvenTest;
+use Twig\Node\Expression\Test\NonStringCoercingInputTest;
 use Twig\Node\Expression\Test\NullTest;
 use Twig\Node\Expression\Test\OddTest;
 use Twig\Node\Expression\Test\SameasTest;
@@ -302,9 +303,9 @@ final class CoreExtension extends AbstractExtension
             new TwigTest('divisible by', null, ['node_class' => DivisiblebyTest::class, 'one_mandatory_argument' => true]),
             new TwigTest('constant', null, ['node_class' => ConstantTest::class]),
             new TwigTest('empty', [self::class, 'testEmpty']),
-            new TwigTest('iterable', 'is_iterable'),
-            new TwigTest('sequence', [self::class, 'testSequence']),
-            new TwigTest('mapping', [self::class, 'testMapping']),
+            new TwigTest('iterable', 'is_iterable', ['node_class' => NonStringCoercingInputTest::class]),
+            new TwigTest('sequence', [self::class, 'testSequence'], ['node_class' => NonStringCoercingInputTest::class]),
+            new TwigTest('mapping', [self::class, 'testMapping'], ['node_class' => NonStringCoercingInputTest::class]),
         ];
     }
 
@@ -795,7 +796,7 @@ final class CoreExtension extends AbstractExtension
     public static function join($value, $glue = '', $and = null): string
     {
         if (!is_iterable($value)) {
-            $value = (array) $value;
+            $value = null === $value ? [] : [$value];
         }
 
         $value = self::toArray($value, false);
